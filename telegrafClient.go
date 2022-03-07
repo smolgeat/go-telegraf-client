@@ -1,10 +1,11 @@
 package telegrafClient
 
+//Package telegrafClient sends metric to telegraf socketlistener over udp in JSON
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net"
-	//"encoding/json"
-	// "encoding/gob"
 )
 
 type client struct {
@@ -14,17 +15,36 @@ type client struct {
 	protocol string
 }
 
-func (c client) Write(metrics []byte) {
-
-	udpClient, err := net.ListenPacket("udp", c.host)
-	if err != nil {
-
-	}
-	udpClient.WriteTo(metrics, udpClient.LocalAddr())
-	udpClient.Close()
+type metric struct {
+	measurement map[string]string
+	tags        map[string]string
 }
 
-func main() {
+func (c client) Write(metrics metric) {
 
-	fmt.Println("Test")
+	message := metrics.measurement
+
+	if metrics.tags != nil {
+		for key, value := range metrics.tags {
+			message[key] = value
+		}
+	} else {
+		for key, value := range c.tags {
+			message[key] = value
+		}
+	}
+	msgInBytes := new(bytes.Buffer)
+	json.NewEncoder(msgInBytes).Encode(message)
+	udpClient, err := net.ListenPacket("udp", c.host+":"+c.port)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	} else {
+		n, err := udpClient.WriteTo(msgInBytes.Bytes(), udpClient.LocalAddr())
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+		} else {
+			fmt.Printf("success: %d\n", n)
+		}
+	}
+
 }
