@@ -9,8 +9,7 @@ import (
 )
 
 type client struct {
-	host     string
-	port     string
+	server   string
 	tags     map[string]string
 	protocol string
 }
@@ -20,9 +19,13 @@ type metric struct {
 	tags        map[string]string
 }
 
-func (c client) Write(metrics metric) {
+func (c client) Write(metrics metric) []byte {
 
 	message := metrics.measurement
+	serverAddr, err := net.ResolveUDPAddr("udp", c.server)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
 
 	if metrics.tags != nil {
 		for key, value := range metrics.tags {
@@ -35,16 +38,14 @@ func (c client) Write(metrics metric) {
 	}
 	msgInBytes := new(bytes.Buffer)
 	json.NewEncoder(msgInBytes).Encode(message)
-	udpClient, err := net.ListenPacket("udp", c.host+":"+c.port)
+	udpClient, err := net.ListenPacket("udp", "127.0.0.1:")
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 	} else {
-		n, err := udpClient.WriteTo(msgInBytes.Bytes(), udpClient.LocalAddr())
+		_, err := udpClient.WriteTo(msgInBytes.Bytes(), serverAddr)
 		if err != nil {
 			fmt.Printf("Error: %s\n", err)
-		} else {
-			fmt.Printf("success: %d\n", n)
 		}
 	}
-
+	return msgInBytes.Bytes()
 }
