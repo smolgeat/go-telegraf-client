@@ -9,33 +9,33 @@ import (
 )
 
 type Client struct {
-	server   string
-	tags     map[string]string
-	protocol string
+	Server   string
+	Tags     map[string]string
+	Protocol string
 }
 
 type Metric struct {
-	measurement map[string]string
-	tags        map[string]string
+	Measurement map[string]string
+	Tags        map[string]string
 }
 
 func (c Client) Write(metrics Metric) []byte {
-	// Writes metrics to telegraf will use global tags if metric tags arent specified
+	// Writes metrics to telegraf will use global Tags if metric Tags arent specified
 	//
 	//
 	//
-	message := metrics.measurement
-	serverAddr, err := net.ResolveUDPAddr("udp", c.server)
+	message := metrics.Measurement
+	serverAddr, err := net.ResolveUDPAddr("udp", c.Server)
 	if err != nil {
 		fmt.Printf("Error: %s\n", err)
 	}
 
-	if metrics.tags != nil {
-		for key, value := range metrics.tags {
+	if metrics.Tags != nil {
+		for key, value := range metrics.Tags {
 			message[key] = value
 		}
 	} else {
-		for key, value := range c.tags {
+		for key, value := range c.Tags {
 			message[key] = value
 		}
 	}
