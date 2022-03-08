@@ -25,55 +25,55 @@ func TestDialUDP(t *testing.T) {
 }
 
 func UDPServer(ctx context.Context, addr string) (net.Addr, error) {
-	server, err := net.ListenPacket("udp", addr)
+	Server, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("udp server failed %s %w", addr, err)
+		return nil, fmt.Errorf("udp Server failed %s %w", addr, err)
 	}
 	go func() {
 		go func() {
 			<-ctx.Done()
-			_ = server.Close
+			_ = Server.Close
 
 		}()
 
 		buf := make([]byte, 1024)
 
 		for {
-			n, clientAddr, err := server.ReadFrom(buf)
+			n, clientAddr, err := Server.ReadFrom(buf)
 			if err != nil {
 				return
 
 			}
 
-			_, err = server.WriteTo(buf[:n], clientAddr)
+			_, err = Server.WriteTo(buf[:n], clientAddr)
 			if err != nil {
 				return
 			}
 		}
 	}()
 
-	return server.LocalAddr(), nil
+	return Server.LocalAddr(), nil
 }
 
 func TestWrite(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
-	serverAddr, err := UDPServer(ctx, "127.0.0.1:8000")
+	serverAddr, err := UDPServer(ctx, "127.0.0.1:8001")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer cancel()
 
-	var UDPClient client
-	var metrics metric
+	var UDPClient Client
+	var metrics Metric
 
-	UDPClient.tags = make(map[string]string)
-	UDPClient.tags["my_tag_1"] = "foo"
-	UDPClient.tags["my_tag_2"] = "bar"
-	UDPClient.server = serverAddr.String()
-	metrics.measurement = make(map[string]string)
-	metrics.measurement["a"] = "5"
-	metrics.measurement["b"] = "6"
+	UDPClient.Tags = make(map[string]string)
+	UDPClient.Tags["my_tag_1"] = "foo"
+	UDPClient.Tags["my_tag_2"] = "bar"
+	UDPClient.Server = serverAddr.String()
+	metrics.Measurement = make(map[string]string)
+	metrics.Measurement["a"] = "5"
+	metrics.Measurement["b"] = "6"
 	expected := []byte(`{"a":"5","b":"6","my_tag_1":"foo","my_tag_2":"bar"}`)
 	result := UDPClient.Write(metrics)
 	resultLessNL := bytes.TrimRight(result, "\n")
