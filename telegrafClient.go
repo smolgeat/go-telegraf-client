@@ -8,19 +8,22 @@ import (
 	"net"
 )
 
-type client struct {
+type Client struct {
 	server   string
 	tags     map[string]string
 	protocol string
 }
 
-type metric struct {
+type Metric struct {
 	measurement map[string]string
 	tags        map[string]string
 }
 
-func (c client) Write(metrics metric) []byte {
-
+func (c Client) Write(metrics Metric) []byte {
+	// Writes metrics to telegraf will use global tags if metric tags arent specified
+	//
+	//
+	//
 	message := metrics.measurement
 	serverAddr, err := net.ResolveUDPAddr("udp", c.server)
 	if err != nil {
