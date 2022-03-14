@@ -3,7 +3,7 @@
 
 - Designed to work with telegraf [socket listener plugin](https://github.com/influxdata/telegraf/tree/master/plugins/inputs/socket_listener) 
 
-- Sends data in JSON format
+- Sends data in JSON format via UDP
 
 
 Example using global tags
