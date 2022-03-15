@@ -3,7 +3,6 @@ package telegrafClient
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net"
 	"testing"
 )
@@ -24,38 +23,52 @@ func TestDialUDP(t *testing.T) {
 
 }
 
+//UDPServer
 func UDPServer(ctx context.Context, addr string) (net.Addr, error) {
 	Server, err := net.ListenPacket("udp", addr)
-	if err != nil {
-		return nil, fmt.Errorf("udp Server failed %s %w", addr, err)
-	}
-	go func() {
+	if err == nil {
 		go func() {
-			<-ctx.Done()
-			_ = Server.Close
+			go func() {
+				<-ctx.Done()
+				_ = Server.Close
 
+			}()
+
+			buf := make([]byte, 1024)
+
+			for {
+				n, clientAddr, err := Server.ReadFrom(buf)
+				if err != nil {
+					return
+
+				}
+
+				_, err = Server.WriteTo(buf[:n], clientAddr)
+				if err != nil {
+					return
+				}
+			}
 		}()
 
-		buf := make([]byte, 1024)
+	}
 
-		for {
-			n, clientAddr, err := Server.ReadFrom(buf)
-			if err != nil {
-				return
-
-			}
-
-			_, err = Server.WriteTo(buf[:n], clientAddr)
-			if err != nil {
-				return
-			}
-		}
-	}()
-
-	return Server.LocalAddr(), nil
+	return Server.LocalAddr(), err
 }
 
-func TestWrite(t *testing.T) {
+//TCPServer listens for one connection then closes
+func TCPServer(ctx context.Context, addr string) (net.Addr, error) {
+	Server, err := net.Listen("tcp", addr)
+	if err == nil {
+		conn, err := Server.Accept()
+		if err == nil {
+			conn.Close()
+		}
+	}
+
+	return Server.Addr(), err
+}
+
+func TestWriteUDP(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	serverAddr, err := UDPServer(ctx, "127.0.0.1:8001")
@@ -71,6 +84,7 @@ func TestWrite(t *testing.T) {
 	UDPClient.Tags["my_tag_1"] = "foo"
 	UDPClient.Tags["my_tag_2"] = "bar"
 	UDPClient.Server = serverAddr.String()
+	UDPClient.Protocol = "UDP"
 	metrics.Measurement = make(map[string]string)
 	metrics.Measurement["a"] = "5"
 	metrics.Measurement["b"] = "6"
